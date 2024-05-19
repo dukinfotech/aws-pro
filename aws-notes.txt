@@ -1,0 +1,281 @@
+
+* Các service bắt đầu bằng Amazon là các services độc lập
+* Các service bắt đầu AWS là các Web Services được sử dụng để phục vụ các services khác
+1. EventBridge realtime, S3 Event delay 5min, Cloud Trail Event delay 15min, Lamda timeout 15min
+2. KMS là nơi quản lý các data key (được sử dụng để mã hóa dữ liệu) và mã hóa các dữ liệu
+3. Paramter Store quản lý các tham số configs và sử dụng KMS để mã hóa/giải mã các configs đó. Trong khi Secret Manager chuyên quản lý các secret strings
+4. Paramter Store có Parameter Policy để tạo các trigger như tự động xóa khi đến expire date, thông báo quá 20 ngày chưa đổi mật khẩu. Trong khi Secret Manager có thể rotate key (thông qua lambda + KMS) để thay đổi secret string định kỳ
+5. SNI (Server Name Indication) giải quyết vấn đề load nhiều SSL certificate lên 1 server (khi chạy nhiều website trên cùng 1 server)
+6. ACM (AWS Certificate Manager) quản lý SSL certificate (có thể request 1 certificate mới từ AWS hoặc import 1 certificate)
+7. S3 có 2 event là S3 Access Log (ghi lại log access) và S3 Event Notification (nhận thông báo khi 1 sự kiện trên bucket được kích hoạt như create, remove, restore object,...)
+8. S3 Object Lambda đóng vai trò như là 1 middleware function thực hiện khi có 1 request GET data từ S3 để customize response,..
+- S3 tranfer acceleration để tăng tốc độ tranfer (upload thông qua AWS Edge Location)
+- S3 Pre-Signed URL dùng để cấp quyền truy cập tạm thời vào object
+- ALCs disabled thì tự động Ownership là Bucket owner enforced (bucket owner làm chủ), ALCs enabled thì Ownership có thể là Bucket owner preferred (nếu người upload có chỉ định bucket-owner-full-control canned ACL thì owner làm chủ còn ko thì writer làm chủ) hoặc Object writer (writer làm chủ)
+9. AWS Shield dùng để chống lại DDOS attacks (mặc định có trên Route 53, CloudFront,...) và có 2 loại Standard (free) và Premium (3000$/org/month)
+10. AWS WAF (Website Application Firewall) dùng để định nghĩa ACL và chống lại các common attacks như SQL Injection, Cross-Site Scripting,... và có 3 loại Managed Rule (baseline, use-case, ip reputation)
+11. AWS Firewall Manager dùng để quản lý AWS WAF và AWS Shield Advanced cho toàn bộ các accounts trong tổ chức
+12. Amazon Inspector dùng để quét và phát hiện lỗ hổng bảo mật, sai sót về cấu hình cho EC2, ECS, Lambda
+13. Amazon GuardDuty sử dụng Machine Learning và DB về các threat và logic để phân tích các sự kiện trên các resouce để giám sát an ninh và phát hiện các hành vi đáng ngờ
+- Khi sử dụng GuardDuty trong tổ chức, grant 1 account thành delegated GuardDuty administrator account. Account này có quyền quản lý GuardDuty tất cả các tài khoản trong tổ chức với region đó
+14. Amazon Detective cung cấp các công cụ điều tra và phân tích sâu các cảnh báo nhận từ Amazon GuardDuty
+15. AWS Config dùng để quản lý các config của trên các resource
+16. Placement Groups là cách thức bố trí các EC2 vật lý trên hạ tầng của AWS. Bao gồm cluster(same rack, same AZ), spread (diff rack, diff AZ, max 7 EC2/AZ), partition (kết hợp cluster và spread, mỗi partition tập hợp nhiều phần cứng #, max 7 partitions/AZ)
+17. EC2 Launch Types: On Demand Instance (khi nào cần thì khởi chạy), Spot Instance (Bid instance), Reserverd, Dedicated Instance (nhiều instance (cùng account) - 1 hardware), Dedicated Host (1 instance - 1 hardware)
+18. HPC (High Performance Compute) mô phỏng việc sử dụng các services của aws để tính toán phức tạp,...
+19. ECS (Elastic Container Service) là nền tảng chạy container của AWS. Với Task Definication là file JSON định nghĩa image name, CPU, RAM,.. và ECS Task là 1 instance của Task Definication
+20. EKS (Elastic Kubernetes Service) là nền tảng chạy Kubernetes của AWS. Kubernetes là phần mềm để quản lý vòng đời của các container trên nhiều máy chủ
+21. ECR (Elastic Container Registry) giống DockerHub. Có tính năng Image Scanning để phân tích và xác định các lỗ hổng bảo mật tiềm ẩn của container images
+22. AWS App Runner dùng để build, deploy web application mà không cần kinh nghiệm về infra. Chỉ cần cung cấp source code hoặc container image và chọn các setting, App Runner sẽ trả về URL truy cập
+23. AWS Lamda limit RAM 10GB, timeout 15min, /tmp storage 10GB, concurrent execution 1000
+24. AWS X-RAY dùng để phân tích và debug production mà chạy microservices để xem mỗi services chạy mất bao lâu thời gian hoặc trace API Gateway, trace request
+- Sử dụng X-Ray SDK for Java để tracing request và SQL query
+25. ELB (Elastic Load Balancer)
+- ALB: muốn sử dụng các chức năng session persistence, content-based routing,... usecase: microservices, containerized environments, web applications
+- NLB: cung cấp high-performance, low-latency,... usecase: gaming, media stream, iot systems,...
+- GLB: quản lý trafic giữa cloud và on-premise hoặc accross different regions
+27. AWS AppSync sử dụng Graphql để kết hợp các database khác nhau (giống Hasura)
+28. Route53 có 3 loại records: A (map với IPv4), AAAA (map với IPv6), CName (map với hostname khác)
+29. Hosted zones giống như 1 database chứa các tên miền và IP address. Pubic Hosted Zones chứa các bản ghi chỉ định cách route traffic trên internet, Private Hosted Zones chứa các bản ghi chỉ định cách route traffic trong VPC
+30. Global Accelerator cung cấp 2 elastic IP dùng để tăng tốc đường truyền bằng cách sử trả về IP address mà gần edge location hơn. Ví dụ như client ở Fukuoka thì trả về IP address của region Hàn Quốc thay vì của region Nhật Bản
+31. AWS OutPosts dùng để cung cấp các server racks của AWS, để các công ty sử dụng các services của AWS ngay tại công ty của mình
+32. EBS chỉ attach vào 1 instance duy nhất tại 1 AZ chỉ định (muốn transfer sang AZ khác thì phải snapshot rồi restore vào AZ khác). Tính năng EBS Multi-Attach thì cũng chỉ áp dụng được trên 1 AZ
+33. Instance Store giống EBS nhưng đi liền với EC2 và data bị mất khi stop hoặc terminate
+34. EFS có thể attach vào nhiều instance trong nhiều AZ và on-premise, chỉ tương thích với Linux và POSIX-compliant
+35. FSx giống EFS nhưng áp dụng cho các ứng dụng Windows hoặc tính toán cao. Multi-AZ deployment cung cấp 1 file server standby ở AZ khác, còn Single-AZ thì chỉ cung cấp file server ở cùng AZ hiện tại
+36. AWS DataSync dùng để move lượng lớn data từ on-premise tới AWS hoặc ngược lại hoặc giữa AWS và AWS qua giao thức riêng của AWS
+37. AWS Data Exchange là 1 marketplace để mua bán dữ liệu
+38. AWS Transfer Family dùng để di chuyển dữ liệu vào/ra khỏi AWS qua các giao thức tiêu chuẩn (FTP, FTPS, SFTP)
+39. AWS CloudFront giúp cải thiện read performance, các static resource được lưu ở location edges và thường được update 1 lần/ngày
+40. Edge Function dùng để thực hiện 1 function ngay trên edge location để gần người dùng và giảm độ trễ. Gồm 2 loại CloudFront Functions và Lambda@Edge
+41. Amazon ElastiCache dùng để lưu trữ cache. Có 2 loại redis và memcached (redis có hỗ trợ replicas giúp high availability)
+42. DynamoDB là NoSQL database của AWS. với tính năng DynamoDB Stream (react to changes realtime), DAX (cache)
+- DocumentDB là NoSQL database ở giữa MongoDB và DynamoDB. DocumentDB vẫn phải thủ công giám sát để chọn số lượng instances và loại instance để scale
+- DocumentDB được deploy trên 1 VPC nên có thể kết nối với EC2 nếu EC2 đó được deploy trên cùng VPC hoặc sử dụng VPC peering
+42. Amazon OpenSearch (giống ElasticSearch)
+42. RDS là 1 dịch vụ giúp dễ dàng quản lý, scale và vận hành các cơ sở dữ liệu quan hệ. Khi sử dụng với lambda cần bật RDS proxy để duy trì kết nối
+43. Aurora là 1 database engine tương thích với MySQL và PostgreSQL được quản lý bởi RDS
+44. Step Function là tool dùng để trực quan hóa workflows, giống sơ đồ khối nhưng có config cho từng step. VD lưu vào DB thì lưu vào bảng nào thuocj tính gì
+45. AWS SQS là message broker. Consumer là EC2 hoặc Lambda. Khi sử dụng với lambda cần bật Event Source Mapping để duy trì kết nối
+- SQS FIFO: 300 mesage/s (non-batching) và 3000 message/s (batching)
+- SQS Dead Letter Queue: Sau x lần
+46. Amazon MQ là dịch vụ để có thể sử dụng các MQTT, AMQP, STOMP trên môi trường cloud khi migrate từ on-premise lên cloud (thay vì phải chuyển đổi sang dùng SQS, SNS)
+47. Kinesis Data Stream: dùng để ĐỌC và lưu trữ streaming data vào shard (khá giống SQS). Usecase: realtime big data, IOT, logs, clickstream
+- Các stream được tách ra và đưa vào các Shards
+- Sử dụng chức năng enhanced fan-out để giảm độ trễ từ 200ms xuống 70ms và để tăng Throughput
+48. Kinesis Data Firehose dùng để load streaming data trực tiếp vào các services khác để xử lý. VD: S3 Readshift, OpenSearch,...
+- Gần như realtime (delay tối đa 1min)
+49. Amazon MSK dùng để chạy Apache Kafka trên AWS (Kafka là cách khác để stream data)
+50. AWS Batch dùng để chạy các workload theo lịch trình cụ thể thông qua việc cung cấp các jobs bằng docker image hoặc shell script 
+51. Amazon ERM dùng để phân tích và xử lý big data
+52. AWS Glue dùng để extract và transform data phụ vụ mục đích analysis tránh việc phải viết custom migration scripts
+53. Amazon Athena dùng để query object từ S3 bằng câu lệnh SQL (giống Redshift Spectrum nhưng dành cho các truy vấn đơn giản)
+54. Amazon Redshift (dựa trên PostgreSQL) dùng để làm datawarehouse (load data từ các nguồn khác nhau như DynamoDB, S3, Kinesis Firehose, ...)
+- Redshift Spectrum dùng để query data có sẵn trong S3 mà ko cần load (giống athena nhưng dành cho các truy vấn phức tạp)
+55. DocumentDB là dùng để sử dụng MongoDB engine trên aws (DynamoDB là No-SQL database engine mà AWS phát triển)
+56. Amazon Timestream dùng để lưu trữ timestream như là 1 DB dành cho các ứng dụng IoT, DevOps, Analysis,...
+57. Amazon Quicksight giống Grafana nhưng phù hợp với việc tạo báo cáo và phân tích dữ liệu kinh doanh
+58. CloudWatch Logs là dịch vụ lưu trữ logs của các services khác, có thể filter bằng expression và có thể export data realtime bằng chức năng Subscription Filter
+59. CloudWatch Alarm dùng để trigger các action như EC2 action, Auto Scaling, SNS,... Có thể bị đánh chặn bởi Amazon EventBridge
+60. CloudWatch Dashboard dùng để hiển thị các metrics
+61. Amazon EventBridge dùng để lắng nghe các event của các service khác (ko chỉ các service của aws. VD auth0) và kích hoạt 1 action nào đó
+62. Amazon X-Ray dùng để trace và debug các ứng dụng phân tán theo kiến trúc micro-service
+63. Elastic Beanstalk dùng để triển khai theo model PaaS. Tức chỉ cần cung cấp source code, AWS sẽ tự động launch các instance EC2, SG, ASG, ALB,...
+64. CodeDeploy là dịch vụ CI/CD của AWS giúp deploy tự động source code lên existing EC2 instances
+67. CloudFormation (giống TerraForm) dùng để Infrastrucure as Code in AWS
+68. Service Catalog giúp các tổ chức tạo và quản lý các CloudFormation
+69. SAM (Serverless Application Model) cung cấp các template để triển khai các ứng dụng serverless dễ dàng
+70. AWS CDK (Cloud Development Kit) là 1 thư viện giúp viết các CloudFormation bằng ngôn ngữ lập trình (giống SDK)
+71. AWS Systems Manager là dịch vụ giúp quản lý đồng bộ các EC2 (cần cài SSM agent trên mỗi EC2 và assign role cho SSM để control). VS: run command across multiple instances mà ko cần SSH
+72. AWS CloudMap là dịch vụ dùng để bookmark các ứng dụng mình hay sử dụng
+73. Trusted Advisor giúp phân tích AWS accounts rồi cung cấp các recommendation như: tối ưu chi phí, hiệu suất, security, các limits của các services,
+74. AWS Service Quotas dùng để quản lý các service thông qua threshold (ví dụ số lượng service resource, operations, concurrent executions,...)
+75. AWS Budget & Explorer dùng để tạo budget và gửi alarm khi cost chạm tới ngưỡng Budget
+76. AWS Compute Optimizer sử dụng Machine Learning để phân tích các resouces và configs của resource đó và đưa ra recommend để tối ưu hóa resouce để cải thiện hiệu suất và giảm thiểu chi phí
+---- Migration ----
+77. 6R (6 strategies)
+- Rehosting: Migrate nhanh chóng từ on-premise lên aws mà ko thay đổi mã nguồn
+- Replatforming: Migrate nhưng có thay đổi nhỏ để tối ưu hóa hiệu suất và tận dụng các lợi ích của service. VD migrate database lên RDS
+- Repurchase: Move to SaaS platform. VD thay vì phát triển CRM thì sử dụng saleforce,...
+- Refactoring/Re-architecting: Kiến trúc lại sử dụng cloud native features. VD move ứng dụng sang kiến trúc serverless sử dụng S3
+- Retire: Bỏ đi những thứ ko cần thiết. Có thể là kết quả của re-architecting
+- Retain: Ko làm gì cả
+78. DMS - Database Migration Service giúp di chuyển database từ 1 loạt các nguồn dữ liệu khác nhau lên CSDL của AWS
+- Backup And Restore: RTO lớn (Recovery Time Objective)
+- Pilot Light: 1 phiên bản nhỏ của app chạy trên Cloud (data replication từ on-premise lên cloud, EC2 thì ở trạng thái not running, Route 53 thì điều phối request)
+- Warm Standby: full system up và running nhưng ở minimum size, khi Disaster Recovery thì scale ra
+- Hot Site / Multi Site Approach: full production scale chạy trên cả aws và on-premise
+80. Fault Injection Simulator dùng để mô phỏng các tình huống sự cố và lỗi đối với hệ thống của mình
+90. AWS backup dùng để backup khắp các services của aws. Khi bật chế độ Vault Lock để tránh người khác chỉnh sửa dữ liệu lưu trữ 
+---- VPC ----
+91. Internet Gateway (IGW) cho phép instances trong public subnet kết nối Internet (cho phép kết nối 2 chiều inbound và outbound, mỗi VPC cần 1 cái)
+92. NAT Gateway (Network Address Translation) cho phép instances trong private subnet kết nối internet (outbound, mỗi AZ cần 1 cái, NAT Gateway triển khai trên public subnet)
+93. NAT instance: EC2 instance nằm trên public subnet, đóng vai trò trung gian giữa instances trong private subnet và IGW
+94. Network ACL là 1 dạng stateless Firewall định nghĩa allow rule, deny rule
+95. Security Group chỉ áp dụng cho instance, chỉ có allow rule. SG là stateful nghĩa là nếu request đã được gửi tới destination thì response sẽ được back lại bất kể SG inbound
+96. Bastion Hosts: SSH vào private EC2 thông qua public EC2
+97. VPC Peering dùng để kết nối 2 VPC 1 cách privately thông qua AWS network và cần thiết lập ở 2 đầu VPC.
+98. Transit Gateway dùng để kết nối peering các VPCs lại với nhau (kết nối hình sao). Khi 2 VPC ở 2 account # cần sử dụng AWS RAM để chia sẻ tài nguyên sử dụng TransitGateway với VPC còn lại
+99. VPC Endpoint giúp kết nối VPC với các AWS Services khác thông qua AWS network (ko thông qua internet nên ko cần NAT, IGW nữa)
+- VPC Endpoint Gateway: Cho phép instances trong private subnet kết nối với S3, DynamoDB
+- VPC Endpoint Interface: Cho phép các instances kết nối với tất cả các service trừ DynamoDB và từ on-premise tới services
+100. AWS PrivateLink là 1 công nghệ của AWS để cung cấp 1 kết nối giữa các services hoặc VPCs trong hệ thống AWS. (Cần VIF - Virtual Interface như là 1 endpoint - điểm kết nối đến services)
+- PrivateLink có thể dùng để kết nối cross account
+101. AWS S2S VPN dùng để kết nối VPC on-premise (cần cài đặt phần mềm VPN) và VPC trên AWS (cần attach Virtual Private Gateway (VGW))
+102. AWS Client VPN là phần mềm VPN dựa trên Open-VPN dùng để truy cập vào các AWS resources và các resouces trên on-promise mà không cần vào AWS Console Dashboard
+103. Direct Connect (DX) tức là tạo kết nối trực tiếp giữa on-premise và AWS VPC tại 1 nơi gọi là Direct Connect Location mà không cần thông qua nhà cung cấp internet. Tuy nhiên data in transit không được mã hóa
+104. AWS Network Firewall dùng để bảo vệ toàn bộ VPC từ layer 3 đến layer 7
+---- Machine Learning ----
+105. Amazon Rekognition dùng để nhận dạng object, people, text, scenes trong video hoặc ảnh sử dụng ML
+106. Amazon Transcrible dùng để convert speech to text
+107. Amazon Polly dùng để convert text to speech
+108. Amazon Translate dùng để translate và tạo các website, app cho international users
+109. Amazon Connect dùng để nhận các cuộc gọi và tạo contact flows để tạo virtual contact center
+110. Amazon Alex nhận dạng giọng nói để convert speech to text. Giúp build các chatbots hoặc call center bot.
+111. Amazon Comprehend dùng để xử lý ngôn ngữ tự nhiên. Amazon Comprehend Medical dùng để detects và trả về thông tin hữu ích trong nội dung chuẩn đoán của bác sĩ
+112. Amazon SageMaker dùng để build ML model dành cho developer hoặc data scientists
+113. Amazon Forecast dùng để dự đoán với độ chính xác cao
+114. Amazon Kendra dùng để tìm kiếm text từ file: text, pdf, HTML, PowerPoint, MS Word,...
+115. Amazon Persionalize dùng để build các app với hệ thống recommendations real-time (có thể đọc data từ S3)
+116. Amazon Textract dùng để nhận dạng chữ viết tay, data được scan,...
+---- Other Services ----
+117. AWS CodeCommit giống Github
+118. AWS CodeBuild dùng để build và test để chạy CI giống Jenkins CI
+119. AWS Elastic Beanstalk dùng để deploy = AWS CodeDeploy + EC2. Nếu deploy blue/green thì cần Swap Enviroment URLs sau khi deploy
+120. Amazon CodeGuru dùng để review code tự động và đưa ra recommendation về performances
+121. Kine Video Stream dùng để lấy dữ liệu từ video, camera, deeplens,..
+122. Amazon AppStream 2.0 giống Cloud Gaming (ko cần máy tính cấu hình cao vẫn thực hiện được các tác vụ nặng VD như yêu cầu đồ họa)
+123. Amazon Workspace giống Virtual Box
+124. AWS Device Farm dùng để test mobile app và web application trên các loại real browsers và real mobiles devices
+125. Amazon Macie dùng ML để bảo vệ các sensitive data CHỈ TRONG S3, giúp bảo vệ PII (Persional Identifiable Information)
+126. Amazon SES dùng để gửi emails globally và securely
+127. Amazon Pinpoint dùng để marketing message tự động như gửi SMS, email tới khách hàng
+129. EC2 Image Builder dùng để tạo container images hoặc Virtual Machine giúp build và test EC2 AMIs
+120. AWS IoT Core
+121. AWS Organizations được recommend chia làm các Organizational Unit: Security, Infrastructure, Workloads, Suspended (các account mà retired resouce) and Exceptions (các account đạt threshold
+122. AWS Budgets cung cấp khả năng control cost-saving hoặc là chạy tự động, hoặc là thay mặt bạn thông qua 1 approval workflow
+--------------------------
+Trong kiến trúc serverless API Gateway => Lambda thì các lỗi 4xx là lỗi thuộc về API Gateway, các lỗi 5xx thuộc về Lambda
+Đối với các câu hỏi chọn 2 câu trả lời thì phân loại các options thành 2 option groups và chọn đáp án đúng nhất mỗi option group
+multi-tier web application tức là web app sử dụng nhiều tầng service: frontend tier, backend tier,... (giống microservices)
+Gateway: là điểm trung gian kết nối giữa 2 network thường là internal network và external network (internet)
+NAT dùng để private subnet kết nối internet. NAT instance hoặc NAT gateway phải cài đặt ở trên public subnet
+Apache Parquet and ORC là định dạng file để tăng performance storage và process khi làm việc với datalake, datawarehouse
+AWS organization chỉ có all features mode mới có thể sử dụng tính năng SCPs
+Các services hỗ trợ cross-Region: S3, EC2 AMIs, RDS, DynamoDB (global tables), SQS, Lambda, Kinesis => Aurora là global database chỉ có chức năng DB cloning
+Các service hỗ trợ multi-AZ: EC2, RDS (Standby Instance ở AZ phụ), ElastiCache, ELB, Aurora, DynamoDB => trừ S3
+CloudWatch Logs Agent ko thể publish data, chỉ có CloudWatch Logs mới publish data
+S3 mất ~24h để public bucket ra các region khác, nếu ko sẽ trả về lỗi 307
+resolve tức là gửi request
+private virtual interface là 1 phần của direct connect dùng để kết nối VPC trên AWS với VPC trên on-premise. nhiều VPC AWS <-> AWS Direct Connect Gateway <-> Private virtual interface <-> On-premise
+Direct Connect Gateway thường dùng để kết nối nhiều VPC trên AWS với nhiều VPC trên on-premise
+Transit Gateway thường dùng để kết nối nhiều VPC AWS trên các account khác nhau
+http port thì dùng ALB, còn TCP port thì dùng NLB -> static IP cần attach vào NLB
+API Gateway REST API có thể truy cập tới DynamoDB trực tiếp
+Rest API hỗ trợ các chức năng sau API keys, per-client throttling, request validation, AWS WAF integration, or private API endpoints
+EC2 - Saving Plan, MemoryDB - Reserved Node, Lambda, Fagate - Compute Saving Plan
+Từ on-premise lên S3, EFS, EBS thì dùng DataSync, còn từ on-premise lên RDS, DynamoDB,... thì dùng DMS
+Task Definiation giống docker-compose, ECS task là các container instance chạy từ file docker-compose đó
+Gateway Load Balancer dùng khi sử dụng các ứng dụng bên thứ 3
+CloudFront Geo Restriction để tạo Allow list và Block list với usecase như luật bản quyền
+Các dịch vụ serverless đều tự động scale: Aurora, DynamoDB,...
+Kinesis Data Streams: Được sử dụng để thu thập, xử lý và lưu trữ dữ liệu streaming. Nó chia dữ liệu thành các "shard" và cung cấp API cho các ứng dụng để đọc và ghi dữ liệu vào các shard.
+NAT Gateway là 1 dạng serverless của NAT instance (cần phải tự tùy chỉnh và cấu hình cho EC2 nên kiểm soát cao hơn)
+CodeArtifact một dịch vụ quản lý repository phần mềm (package repository) giống npm 
+egress-only internet gateway chỉ cho phép đi ra internet, ko cho phép truy cập từ ngoài vào trong
+guardrails là chức năng strongly recommended controls của AWS Control Tower
+API Gateway payload limit 10 MB => Upload các file > 100 MB cần S3 transfer acceleration và multi-part
+AWS Application Discovery Service dùng để collect thông tin config, usage của máy chủ server hoặc database
+- Có 2 loại agent:
++ Agentless discovery: deploy Agentless Collector thông qua VMWare vCenter, thu thập thông tin về static config data
++ Agent-based discovery: deploy Agent vào mỗi VMs và máy chủ vật lý, thu thập thông tin về network
+AWS Migration Evaluator dùng để build business case
+Amazon Workspace kết hợp với public IP của branch office để chỉ cho phép branch office kết nối tới Workspace
+Global Accelerator cung cấp 2 elastic IP dùng để tăng tốc đường truyền bằng cách sử trả về IP address mà gần edge location hơn. Ví dụ như client ở Fukuoka thì trả về IP address của region Hàn Quốc thay vì của region Nhật Bản
+Migration Evaluator tạo TCO report　và Migration Hub để show và Application Discovery Service để hiểu app dependencies
+các EC2 trong cùng 1 ALB phải cùng region
+Nếu workload có thể interupt thì chọn spot
+RPO how often
+RTO Downtime
+MACsec is only supported on 10gbps and 100gbps Direct Connect
+
+
+1. SCPs định nghĩa quyền tối đa mà user và role trong Organization có thể có được. Vì nó là policy nên nó có thể có cả allow (all) và deny rules (1 so)
+2. Các cách kết nối on-premise với AWS VPCs:
+	- Direct Connection: Phải cần 1 trong 3 loại Virtual Interface dưới đây:
+		+ Public VIF giúp on-premise truy cập tới các public services như S3
+		+ Private VIF giúp on-premise truy cập tới VPC
+		+ Transit VIF giúp on-premise có thể kết nối tới 1 hoặc nhiều Transit Gateway (thông qua Direct Connect Gateway)
+	- AWS Site-to-Site VPN (1 on-premise): Cần Virtual Private gateway
+	- AWS VPN CloudHub (nhiều on-premise): Cần Virtual Private gateway
+3. Transit Gateway là 1 network transit hub để kết nối giữa 3 phần tử:
+	- Các VPCs same region
+	- on-premise network (thông qua VPN connection)
+	- Direct Connect Gateway (thông qua Direct Connection)
+=> Khi muốn kết nối inter-Region thì kết nối các Transit Gateways với nhau
+4. Virtual Private Gateway là 1 thiết bị mạng ảo dùng để kết nối on-premise tới VPC thông qua VPN connection
+5. Private Link là 1 công nghệ cung cấp kết nối private giữa các VPCs và các AWS Services mà ko thông qua internet
+ENI - Elastic Network Interface:
+6. Route table là 1 bảng dùng để xác định cách mà các gói dữ liệu được redirect (gồm destination và target)
+7. Hosted Zones bản chất giống domain nhưng trong phạm vi AWS Route 53 => Public Hosted Zone chính là Domain được công khai
+8. AWS CloudFormation là 1 template định nghĩa infrastructure
+	- Stack là 1 tập hợp các resource được triển khai và quản lý bởi AWS CloudFormation
+	- StackSet dùng để quản lý các Stack across region và account
+	- Có thể import exist resource vào CloudFormation
+9. Nat Instance, NAT gateway dùng để giao tiếp private subnet với destination ở bên ngoài VPC (chẳng hạn như internet)
+	- NAT đóng vai trò như là 1 proxy server
+	- NAT instance cần phải disable source/destination checks bởi vì NAT instance chỉ là instance trung gian, ko phải là source hay destination của bất kỳ traffic nào
+10. DynamoDB có thuộc tính TTL: Tự động xóa record sau 1 khoảng thời gian nhất định. Người dùng cần phải tạo 1 column có datatype là timestamp và config TTL vào cột này
+11. Setup AWS Elastic Disaster Recovery trên server on-premise để replicate data giúp giảm RPO và RTO
+12. CloudFront function thích hợp cho việc sửa header, redirect, rewrite, hoặc request authorizaton còn Lambda@Edge thì customize được logic
+13. Những service nào cần sử dụng phía on-premise đều cần 1 software agent. Ví dụ DataSync agent, Application Migration Service Agent
+14. Các service hỗ trợ auth/authorize: Amazon API Gateway, ALB
+15. Các services yêu cầu VPC là các service liên quan đến EC2 (RDS, EMR, RedShift, OpenSearch, Beanstalk, LB, Nat Gateway)
+	- Đó là những service cần phải "deploy". Nếu ko muốn sử dụng VPC thì sử dụng các service serverless
+16. Aurora serverless v1 ko ho tro read repplicas, cross-region replicas, global tables
+17. Apex domain là domain gốc (VD: example.com thì apex là example) ko được config cho CNAME
+18. full managed services: các services serverless
+19. WAF Bot Control để prevent crawler, search engine,...
+20. S3 Multi Region Access giống như proxy để redirect request tới S3 bucket gần nhất
+21. LEAST administrative, operational thì phải loại bỏ đáp án EC2, chọn SERVERLESS
+22. Nếu chỉ là gửi hàng loạt email thông thường thì sử dụng Send Email Service, còn gửi email thông báo thì sử dụng Simple Notification Service (cần realtime và số lượng ít)
+23. Amazon Data Lifecycle Manager (Amazon DLM) ko backup các config, setting của DB, còn Amazon Backup thì có
+24. AWS Transfer Accelerator dùng để giảm độ trễ (performance) khi upload file, còn muli-upload dùng để tăng tốc độ upload
+25. File Gateway == SMB , NFS
+Volumes Gateway == iSCSI
+Tape Gateway = VTL
+26. AWS Disaster Recovery để nhanh chóng phục hồi app khi bị failover còn AWS Backup dùng để tạo thêm 1 bản copy data để đề phòng
+27. AWS Amplify cơ bản là sử dụng CLI để tạo ra frontend web and mobile nhanh chóng bằng cách kết hợp 1 số services của aws như Amazon Cognito
+28. AWS IOT Greengrass hỗ trợ vận hành offline
+29. Launch template dùng để cấu hình EC2 khi khởi chạy
+30. Control Tower xây dựng dựa trên Organization giúp người dùng tự động hóa việc thiết lập triển khai và quản lý môi trường multi-account
+31. AppStream dùng để sử dụng remote tới 1 app được triển khai trên AWS thông qua trình duyệt, còn Workspace để remote tới 1 máy tính được đặt trên AWS và cần Workspace client
+
+TÌM HIỂU VỀ ACTIVE DIRECTORY
+
+suspend: cấm
+mandate: ủy quyền
+retain: giữ lại
+consolidate: hợp nhất
+dedicate: chuyên dụng
+designate: chọn, chỉ định
+intervention: can thiệp
+decouple: tách rời => SQS
+loosely coupled => SQS
+reliability: độ tin cậy => increase reliability => auto scale
+resiliency: Khả năng phục hồi => Cross-region 
+encrypt in transit and at rest => Mã hóa khi tranfer và mã hóa khi lưu
+fault tolerant: khả năng chịu lỗi => ko yêu cầu khả năng chịu lỗi tức là failover vẫn được
+policy: quy tắc
+ingest = insert
+quota = threshold
+ERM Big Data
+Glue Extract Data
+Athena = RedShift Spectrum
+Trusted Advisor account
+zero downtime = a blue/green deployment
+
+304, 306, 314, 321, 326, 328, 332, 337, 343, 347, 349, 352, 353
+359, 360, 362, 364, 365, 372, 373, 380, 381, 383, 385, 387, 391
+392. 395, 398, 399, 400, 403, 412, 414, 416, 421, 426, 434, 435
+442, 453, 459, 461, 463, 466, 467
